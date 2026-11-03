@@ -1652,3 +1652,338 @@ fn all_latin_licences_match_the_reviewed_upstream_catalog() {
         assert_eq!(hex, hash, "{path}: complete upstream licence changed");
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// Noto Sans Tamil and Noto Serif Tamil (variable) -- default manifest, `Taml` script.
+// File sizes are deliberately not asserted; the SHA-256 pins the exact bytes.
+// ---------------------------------------------------------------------------------------------
+
+struct TamilFace {
+    family: &'static str,
+    dir: &'static str,
+    sha256: &'static str,
+    glyphs: u16,
+}
+
+const TAMIL_FACES: [TamilFace; 2] = [
+    TamilFace {
+        family: "Noto Sans Tamil",
+        dir: "fonts/noto-sans-tamil/",
+        sha256: "27411cb1c84bb2e418583b65a0ba665494a176d59d5862890292dbbabe3fcd4e",
+        glyphs: 531,
+    },
+    TamilFace {
+        family: "Noto Serif Tamil",
+        dir: "fonts/noto-serif-tamil/",
+        sha256: "66b0d001d79c85cc5f11907cff478d1d7b24c655c394951b65aa47abce3ea04a",
+        glyphs: 505,
+    },
+];
+
+/// Text every Tamil font must cover: vowels, consonants, Grantha letters, vowel signs, the
+/// pulli, `ஸ்ரீ` / `க்ஷ` sequences, digits and `ௐ`, plus basic Latin and digits (UI strings
+/// mix them).
+const TAMIL: &str = concat!(
+    "அஆஇஈஉஊஎஏஐஒஓஔஃ",
+    "கஙசஞடணதநபமயரலவழளறன",
+    "ஜஷஸஹ",
+    "ாிீுூெேைொோௌ்ௗ",
+    "௦௧௨௩௪௫௬௭௮௯",
+    "ஸ்ரீ க்ஷ ௐ",
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+);
+
+/// A Tamil UI-style sample: "Tamil language file edit save".
+const TAMIL_SAMPLE: &str = "தமிழ் மொழி கோப்பு திருத்து சேமி ஸ்ரீ க்ஷ";
+
+fn tamil_font_strings(font: &FontRef<'_>, id: StringId) -> Vec<String> {
+    font.localized_strings(id).map(|s| s.to_string()).collect()
+}
+
+#[test]
+fn tamil_rows_are_exact_and_listed_in_the_default_manifest() {
+    assert_eq!(
+        for_script("Taml").count(),
+        TAMIL_FACES.len(),
+        "the default manifest must list exactly the Noto Sans and Noto Serif Tamil faces"
+    );
+    for t in &TAMIL_FACES {
+        let f = face(t.family);
+        assert_eq!(f.scripts, ["Taml"].as_slice(), "{}: manifest scripts", f.file);
+        // The name-table style of these variable files is "Regular"; a manifest may also label
+        // them "Variable". Either is accepted; the variable axes are asserted separately.
+        assert!(
+            f.style == "Regular" || f.style.ends_with("Variable"),
+            "{}: unexpected manifest style {:?}",
+            f.file,
+            f.style
+        );
+        assert!(
+            f.file.starts_with(t.dir) && f.file.ends_with(".ttf"),
+            "{}: expected a .ttf under {}",
+            f.file,
+            t.dir
+        );
+        assert_eq!(f.licence, "OFL-1.1", "{}: licence", f.file);
+        assert_eq!(
+            f.licence_file,
+            format!("{}OFL.txt", t.dir),
+            "{}: licence file",
+            f.file
+        );
+        assert_eq!(f.sha256, t.sha256, "{}: manifest sha256", f.file);
+    }
+}
+
+#[test]
+fn tamil_files_match_their_pinned_and_manifest_checksums() {
+    for t in &TAMIL_FACES {
+        let f = face(t.family);
+        let data = bytes(f);
+        assert!(!data.is_empty(), "{}: the Tamil font file is empty", f.file);
+        let digest = Sha256::digest(&data);
+        let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(hex, t.sha256, "{}: font SHA-256", f.file);
+        assert_eq!(
+            hex, f.sha256,
+            "{}: the file changed; update the manifest only after checking the new upstream source",
+            f.file
+        );
+    }
+}
+
+#[test]
+fn tamil_licences_are_the_sil_ofl_text() {
+    for t in &TAMIL_FACES {
+        let f = face(t.family);
+        let text = std::fs::read_to_string(craft_fonts_tests::repo_root().join(f.licence_file))
+            .unwrap_or_else(|e| panic!("{}: {e}", f.licence_file));
+        assert!(
+            text.contains("SIL OPEN FONT LICENSE Version 1.1"),
+            "{} is not the OFL 1.1 text",
+            f.licence_file
+        );
+        assert!(
+            text.contains("Noto Project Authors") || text.contains(t.family),
+            "{} lacks the upstream Noto copyright notice",
+            f.licence_file
+        );
+    }
+}
+
+#[test]
+fn tamil_faces_are_single_upright_variable_faces_with_weight_and_width_axes() {
+    for t in &TAMIL_FACES {
+        let f = face(t.family);
+        let data = bytes(f);
+        // A TrueType sfnt, not a TrueType Collection: one face in the file.
+        assert_eq!(&data[..4], &[0x00, 0x01, 0x00, 0x00], "{}: not a plain TrueType sfnt", f.file);
+        let font = FontRef::new(&data).unwrap_or_else(|e| panic!("{}: {e}", f.file));
+
+        let axes = font.axes();
+        let tags: Vec<String> = axes.iter().map(|a| a.tag().to_string()).collect();
+        assert_eq!(tags.len(), 2, "{}: expected only wght and wdth, got {tags:?}", f.file);
+        let weight = axes
+            .iter()
+            .find(|a| a.tag() == "wght")
+            .unwrap_or_else(|| panic!("{}: no wght axis, axes are {tags:?}", f.file));
+        assert_eq!(
+            (weight.min_value(), weight.default_value(), weight.max_value()),
+            (100.0, 400.0, 900.0),
+            "{}: wght axis must be 100..900, default 400",
+            f.file
+        );
+        let width = axes
+            .iter()
+            .find(|a| a.tag() == "wdth")
+            .unwrap_or_else(|| panic!("{}: no wdth axis, axes are {tags:?}", f.file));
+        assert_eq!(
+            (width.min_value(), width.default_value(), width.max_value()),
+            (62.5, 100.0, 100.0),
+            "{}: wdth axis must be 62.5..100, default 100",
+            f.file
+        );
+
+        let os2 = font
+            .os2()
+            .unwrap_or_else(|e| panic!("{}: OS/2: {e}", f.file));
+        assert!(
+            !os2.fs_selection().contains(SelectionFlags::ITALIC),
+            "{}: the Tamil face is upright, not italic",
+            f.file
+        );
+        assert_eq!(font.attributes().style, Style::Normal, "{}: style", f.file);
+    }
+}
+
+#[test]
+fn tamil_files_are_the_reviewed_noto_2_004_release() {
+    for t in &TAMIL_FACES {
+        let f = face(t.family);
+        let data = bytes(f);
+        let font = FontRef::new(&data).unwrap_or_else(|e| panic!("{}: {e}", f.file));
+
+        let versions = tamil_font_strings(&font, StringId::VERSION_STRING);
+        assert!(
+            versions.iter().any(|v| v.contains("Version 2.004")),
+            "{}: expected Version 2.004, found {versions:?}",
+            f.file
+        );
+        let copyrights = tamil_font_strings(&font, StringId::COPYRIGHT_NOTICE);
+        assert!(
+            copyrights
+                .iter()
+                .any(|c| c.contains("The Noto Project Authors")),
+            "{}: copyright notice is {copyrights:?}",
+            f.file
+        );
+        let styles = tamil_font_strings(&font, StringId::SUBFAMILY_NAME);
+        assert!(
+            styles.iter().any(|s| s == "Regular"),
+            "{}: name-table style is {styles:?}",
+            f.file
+        );
+        assert_eq!(
+            font.maxp().map(|m| m.num_glyphs()).unwrap_or(0),
+            t.glyphs,
+            "{}: glyph count",
+            f.file
+        );
+
+        let os2 = font
+            .os2()
+            .unwrap_or_else(|e| panic!("{}: OS/2: {e}", f.file));
+        assert_eq!(os2.us_weight_class(), 400, "{}: OS/2 weight", f.file);
+        assert!(
+            os2.fs_selection().contains(SelectionFlags::REGULAR),
+            "{}: fsSelection lacks REGULAR",
+            f.file
+        );
+    }
+}
+
+#[test]
+fn tamil_family_names_are_noto_sans_and_noto_serif_tamil() {
+    for t in &TAMIL_FACES {
+        let f = face(t.family);
+        let data = bytes(f);
+        let font = FontRef::new(&data).unwrap_or_else(|e| panic!("{}: {e}", f.file));
+        let names: Vec<String> = [StringId::TYPOGRAPHIC_FAMILY_NAME, StringId::FAMILY_NAME]
+            .into_iter()
+            .flat_map(|id| tamil_font_strings(&font, id))
+            .collect();
+        assert!(
+            names.iter().any(|n| n == t.family),
+            "{}: name table has {names:?}, expected {:?}",
+            f.file,
+            t.family
+        );
+    }
+}
+
+#[test]
+fn tamil_fonts_cover_tamil_text() {
+    // `covers` checks every face tagged `Taml`, so both the Sans and the Serif face.
+    covers("Taml", TAMIL);
+    covers("Taml", TAMIL_SAMPLE);
+}
+
+#[test]
+fn tamil_glyphs_have_outlines() {
+    for t in &TAMIL_FACES {
+        let f = face(t.family);
+        for c in ['அ', 'க', 'ழ', 'ஜ', 'ஷ', 'ா', 'ி', 'ெ', '்', 'ௐ', '௧'] {
+            assert_face_glyph_outline(f, c);
+        }
+        let data = bytes(f);
+        let font = FontRef::new(&data).unwrap_or_else(|e| panic!("{}: {e}", f.file));
+        assert!(
+            font.charmap().map(' ').is_some(),
+            "{}: no space glyph in the Tamil sample",
+            f.file
+        );
+        for c in TAMIL_SAMPLE.chars().filter(|c| !c.is_whitespace()) {
+            assert_glyph_outline(&font, f.file, c);
+        }
+    }
+}
+
+/// Every assigned code point of the Tamil block `U+0B80..=U+0BFF` maps to a glyph that draws
+/// something. Unassigned code points inside the block are skipped. This is coverage, not proof
+/// of Tamil shaping or mark positioning.
+#[test]
+fn tamil_assigned_block_maps_to_drawn_outlines() {
+    let assigned: [std::ops::RangeInclusive<u32>; 17] = [
+        0x0B82..=0x0B83,
+        0x0B85..=0x0B8A,
+        0x0B8E..=0x0B90,
+        0x0B92..=0x0B95,
+        0x0B99..=0x0B9A,
+        0x0B9C..=0x0B9C,
+        0x0B9E..=0x0B9F,
+        0x0BA3..=0x0BA4,
+        0x0BA8..=0x0BAA,
+        0x0BAE..=0x0BB9,
+        0x0BBE..=0x0BC2,
+        0x0BC6..=0x0BC8,
+        0x0BCA..=0x0BCD,
+        0x0BD0..=0x0BD0,
+        0x0BD7..=0x0BD7,
+        0x0BE6..=0x0BF2,
+        0x0BF3..=0x0BFA,
+    ];
+    for t in &TAMIL_FACES {
+        let f = face(t.family);
+        let data = bytes(f);
+        let font = FontRef::new(&data).unwrap_or_else(|e| panic!("{}: {e}", f.file));
+        let mut checked = 0;
+        for range in assigned.iter().cloned() {
+            for cp in range {
+                let c = char::from_u32(cp).expect("Tamil block code points are valid scalars");
+                assert_glyph_outline(&font, f.file, c);
+                checked += 1;
+            }
+        }
+        assert_eq!(checked, 72, "the Tamil block has 72 assigned code points");
+    }
+}
+
+/// The variable fonts must still draw at the corners of their weight/width design space, not
+/// only at the default instance, so a broken `gvar` cannot hide behind a working default.
+#[test]
+fn tamil_glyphs_draw_at_the_axis_extremes() {
+    for t in &TAMIL_FACES {
+        let f = face(t.family);
+        let data = bytes(f);
+        let font = FontRef::new(&data).unwrap_or_else(|e| panic!("{}: {e}", f.file));
+        for weight in [100.0_f32, 900.0] {
+            for width in [62.5_f32, 100.0] {
+                let location = font.axes().location([("wght", weight), ("wdth", width)]);
+                for c in ['க', 'ழ', 'ஸ', 'ா', '்'] {
+                    let gid = font
+                        .charmap()
+                        .map(c)
+                        .unwrap_or_else(|| panic!("{}: no glyph for {c}", f.file));
+                    let glyph = font
+                        .outline_glyphs()
+                        .get(gid)
+                        .unwrap_or_else(|| panic!("{}: no outline for {c}", f.file));
+                    let mut pen = OutlineCount(0);
+                    glyph
+                        .draw(
+                            DrawSettings::unhinted(Size::new(64.0), LocationRef::from(&location)),
+                            &mut pen,
+                        )
+                        .unwrap_or_else(|e| {
+                            panic!("{}: drawing {c} at wght {weight} wdth {width}: {e}", f.file)
+                        });
+                    assert!(
+                        pen.0 > 0,
+                        "{}: {c} draws nothing at wght {weight} wdth {width}",
+                        f.file
+                    );
+                }
+            }
+        }
+    }
+}
