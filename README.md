@@ -46,6 +46,8 @@ This library is meant to have the following:
 | Noto Sans Hebrew | Regular (static) | Hebrew UI and document text | OFL-1.1 |
 | Noto Sans Devanagari | Regular (static) | Devanagari UI and document text | OFL-1.1 |
 | LXGW WenKai Lite | Regular (static) | Native-only opt-in Simplified Chinese fallback (Kai) | OFL-1.1 |
+| Noto Sans Tamil | Regular (variable: wdth, wght) | Tamil UI and document text (sans) | OFL-1.1 |
+| Noto Serif Tamil | Regular (variable: wdth, wght) | Tamil UI and document text (serif) | OFL-1.1 |
 
 ### Latin presentation fonts (`fonts/latin-manifest.txt`, opt-in)
 
