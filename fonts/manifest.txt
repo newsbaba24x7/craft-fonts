@@ -1,5 +1,5 @@
 # Font manifest for the Crafting Apps. One font file per line, fields separated by " | ":
-#   family | style | file (relative to the repo root) | scripts (ISO 15924, comma-separated) | licence | licence file | sha256 | source
+# family | style | file (relative to the repo root) | scripts (ISO 15924, comma-separated) | licence | licence file | sha256 | source
 # Lines starting with '#' and blank lines are ignored. Apps read this file from their build.rs when
 # CRAFT_FONTS_DIR is set (see docs/integration.md), so keep the format this simple.
 Shippori Mincho | Regular | fonts/shippori-mincho/ShipporiMincho-Regular.ttf | Jpan,Latn | OFL-1.1 | fonts/shippori-mincho/OFL.txt | 769b5269f0f9bc6534b352c0e6bd856a566e03ff788f107191c2d835863570b2 | https://github.com/google/fonts/tree/9710da1eacb3be272583c3224dcb70f9da6eadbb/ofl/shipporimincho
@@ -15,3 +15,5 @@ Noto Sans Symbols | Regular | fonts/noto-sans-symbols/NotoSansSymbols.ttf | Zsym
 Noto Sans Symbols 2 | Regular | fonts/noto-sans-symbols-2/NotoSansSymbols2-Regular.ttf | Zsym | OFL-1.1 | fonts/noto-sans-symbols-2/OFL.txt | 7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21 | https://github.com/google/fonts/tree/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/notosanssymbols2
 Noto Sans Hebrew | Regular | fonts/noto-sans-hebrew/NotoSansHebrew-Regular.ttf | Hebr | OFL-1.1 | fonts/noto-sans-hebrew/OFL.txt | 671951828bd5c95db818e5bb12dcea2d0c0dda00311888522be061ee6835125e | https://github.com/notofonts/hebrew/releases/tag/NotoSansHebrew-v3.001
 Noto Sans Devanagari | Regular | fonts/noto-sans-devanagari/NotoSansDevanagari-Regular.ttf | Deva | OFL-1.1 | fonts/noto-sans-devanagari/OFL.txt | 573e525d9f4923d34645fe752475419f45f8dec5a8e43f3e83c5c5f43d1f2ff9 | https://github.com/notofonts/devanagari/releases/tag/NotoSansDevanagari-v2.007
+Noto Sans Tamil | Variable | fonts/noto-sans-tamil/NotoSansTamil.ttf | Taml | OFL-1.1 | fonts/noto-sans-tamil/OFL.txt | 27411cb1c84bb2e418583b65a0ba665494a176d59d5862890292dbbabe3fcd4e | https://github.com/notofonts/tamil/releases/tag/NotoSansTamil-v2.004
+Noto Serif Tamil | Variable | fonts/noto-serif-tamil/NotoSerifTamil.ttf | Taml | OFL-1.1 | fonts/noto-serif-tamil/OFL.txt | 66b0d001d79c85cc5f11907cff478d1d7b24c655c394951b65aa47abce3ea04a | https://github.com/notofonts/tamil/releases/tag/NotoSerifTamil-v2.004
